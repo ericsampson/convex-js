@@ -16,6 +16,7 @@ import {
 import { getFunctionName } from "../server/api.js";
 import { AuthTokenFetcher } from "./sync/authentication_manager.js";
 import { ConnectionState } from "./sync/client.js";
+import type { ConvexClientInterface } from "./client_interface.js";
 import {
   ExtendedTransition,
   PaginatedQueryClient,
@@ -80,7 +81,7 @@ export type Unsubscribe<T> = {
  *
  * @public
  */
-export class ConvexClient {
+export class ConvexClient implements ConvexClientInterface {
   private listeners: Set<QueryInfo>;
   private _client: BaseConvexClient | undefined;
   private _paginatedClient: PaginatedQueryClient | undefined;
@@ -116,38 +117,69 @@ export class ConvexClient {
    *
    * @public
    */
-  constructor(address: string, options: ConvexClientOptions = {}) {
-    if (options.skipConvexDeploymentUrlCheck !== true) {
-      validateDeploymentUrl(address);
-    }
-    const { disabled, ...baseOptions } = options;
+  constructor(address: string, options?: ConvexClientOptions);
+
+  /**
+   * Construct a client with an injected BaseConvexClient.
+   *
+   * This overload enables dependency injection for testing or custom client configurations.
+   *
+   * @param baseClient - A pre-configured BaseConvexClient instance
+   * @param options - Client options (`disabled` is overridden when injecting a client)
+   *
+   * @public
+   */
+  constructor(baseClient: BaseConvexClient, options?: Omit<ConvexClientOptions, "disabled">);
+
+  constructor(
+    addressOrClient: string | BaseConvexClient,
+    options: ConvexClientOptions = {},
+  ) {
     this._closed = false;
-    this._disabled = !!disabled;
-    if (
-      defaultWebSocketConstructor &&
-      !("webSocketConstructor" in baseOptions) &&
-      typeof WebSocket === "undefined"
-    ) {
-      baseOptions.webSocketConstructor = defaultWebSocketConstructor;
+    this.listeners = new Set();
+
+    if (typeof addressOrClient === "string") {
+      // Original behavior: create BaseConvexClient from address
+      const address: string = addressOrClient;
+      if (options.skipConvexDeploymentUrlCheck !== true) {
+        validateDeploymentUrl(address);
+      }
+      const { disabled, ...baseOptions } = options;
+      this._disabled = !!disabled;
+      if (
+        defaultWebSocketConstructor &&
+        !("webSocketConstructor" in baseOptions) &&
+        typeof WebSocket === "undefined"
+      ) {
+        baseOptions.webSocketConstructor = defaultWebSocketConstructor;
+      }
+      if (
+        typeof window === "undefined" &&
+        !("unsavedChangesWarning" in baseOptions)
+      ) {
+        baseOptions.unsavedChangesWarning = false;
+      }
+      if (!this.disabled) {
+        this._client = new BaseConvexClient(
+          address,
+          () => {}, // NOP, let the paginated query client do it all
+          baseOptions,
+        );
+      }
+    } else {
+      // Dependency injection: use provided BaseConvexClient
+      const client: BaseConvexClient = addressOrClient;
+      this._disabled = false;
+      this._client = client;
     }
-    if (
-      typeof window === "undefined" &&
-      !("unsavedChangesWarning" in baseOptions)
-    ) {
-      baseOptions.unsavedChangesWarning = false;
-    }
-    if (!this.disabled) {
-      this._client = new BaseConvexClient(
-        address,
-        () => {}, // NOP, let the paginated query client do it all
-        baseOptions,
-      );
+
+    // Create PaginatedQueryClient if we have a client
+    if (this._client) {
       this._paginatedClient = new PaginatedQueryClient(
         this._client,
         (transition) => this._transition(transition),
       );
     }
-    this.listeners = new Set();
   }
 
   /**

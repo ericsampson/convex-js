@@ -48,6 +48,7 @@ import {
 } from "./authentication_manager.js";
 export { type AuthTokenFetcher } from "./authentication_manager.js";
 import { getMarksReport, mark, MarkName } from "./metrics.js";
+import type { BaseConvexClientInterface } from "./base_client_interface.js";
 import { parseArgs, validateDeploymentUrl } from "../../common/index.js";
 import { ConvexError } from "../../values/errors.js";
 import { jwtDecode } from "../../vendor/jwt-decode/index.js";
@@ -242,7 +243,7 @@ export type Transition = {
  *
  * @public
  */
-export class BaseConvexClient {
+export class BaseConvexClient implements BaseConvexClientInterface {
   private readonly address: string;
   private readonly state: LocalSyncState;
   private readonly requestManager: RequestManager;

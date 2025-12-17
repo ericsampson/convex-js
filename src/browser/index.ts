@@ -24,9 +24,11 @@ export type {
   ConnectionState,
   AuthTokenFetcher,
 } from "./sync/client.js";
+export type { BaseConvexClientInterface } from "./sync/base_client_interface.js";
 export type { PaginationStatus } from "./sync/pagination.js";
-export type { ConvexClientOptions } from "./simple_client.js";
+export type { ConvexClientOptions, Unsubscribe } from "./simple_client.js";
 export { ConvexClient } from "./simple_client.js";
+export type { ConvexClientInterface } from "./client_interface.js";
 export type {
   OptimisticUpdate,
   OptimisticLocalStore,

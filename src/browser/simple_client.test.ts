@@ -1,5 +1,8 @@
 import { test, expect } from "vitest";
-import { withInMemoryWebSocket } from "./sync/client_node_test_helpers.js";
+import {
+  nodeWebSocket,
+  withInMemoryWebSocket,
+} from "./sync/client_node_test_helpers.js";
 import {
   DefaultFunctionArgs,
   getFunctionName,
@@ -7,6 +10,7 @@ import {
 } from "../server/index.js";
 // This Node.js build sets up the WebSocket dependency automatically.
 import { ConvexClient } from "./simple_client-node.js";
+import { BaseConvexClient } from "./sync/client.js";
 
 const apiQueryFunc = makeFunctionReference<
   "query",
@@ -95,6 +99,38 @@ test("Optimistic updates are applied", async () => {
     expect(client.client.localQueryResult(getFunctionName(apiQueryFunc))).toBe(
       "optimisticValue",
     );
+
+    unsubscribe();
+    expect((await receive()).type).toEqual("ModifyQuerySet");
+
+    await client.close();
+  });
+});
+
+test("ConvexClient accepts injected BaseConvexClient", async () => {
+  await withInMemoryWebSocket(async ({ address, receive }) => {
+    // Create a BaseConvexClient directly
+    const baseClient = new BaseConvexClient(
+      address,
+      () => {},
+      {
+        webSocketConstructor: nodeWebSocket,
+        unsavedChangesWarning: false,
+      },
+    );
+    expect((await receive()).type).toEqual("Connect");
+    expect((await receive()).type).toEqual("ModifyQuerySet");
+
+    // Inject the BaseConvexClient into ConvexClient
+    const client = new ConvexClient(baseClient);
+
+    // The client should use the injected base client
+    expect(client.client).toBe(baseClient);
+    expect(client.disabled).toBe(false);
+
+    // Subscriptions should work through the injected client
+    const { unsubscribe } = client.onUpdate(apiQueryFunc, {}, () => null);
+    expect((await receive()).type).toEqual("ModifyQuerySet");
 
     unsubscribe();
     expect((await receive()).type).toEqual("ModifyQuerySet");
