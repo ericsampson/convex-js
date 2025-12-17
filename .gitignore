@@ -14,3 +14,4 @@ tmpDist*
 # Local development files
 tsconfig.browser.json
 dist/
+tsconfig.build.json
