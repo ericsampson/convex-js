@@ -4,6 +4,7 @@ import type {
   PaginatedQueryToken,
   QueryToken,
   PaginationStatus,
+  ConvexReactClientInterface,
 } from "../browser/index.js";
 import React, { useCallback, useContext, useMemo } from "react";
 import { convexToJson, Value } from "../values/index.js";
@@ -95,7 +96,7 @@ export interface ReactMutation<Mutation extends FunctionReference<"mutation">> {
 // Exported only for testing.
 export function createMutation(
   mutationReference: FunctionReference<"mutation">,
-  client: ConvexReactClient,
+  client: ConvexReactClientInterface,
   update?: OptimisticUpdate<any>,
 ): ReactMutation<any> {
   function mutation(args?: Record<string, Value>): Promise<unknown> {
@@ -138,7 +139,7 @@ export interface ReactAction<Action extends FunctionReference<"action">> {
 
 function createAction(
   actionReference: FunctionReference<"action">,
-  client: ConvexReactClient,
+  client: ConvexReactClientInterface,
 ): ReactAction<any> {
   return function (args?: Record<string, Value>): Promise<unknown> {
     return client.action(actionReference, args);
@@ -303,8 +304,15 @@ export class ConvexReactClient {
   private listeners: Map<QueryToken | PaginatedQueryToken, Set<() => void>>;
   private options: ConvexReactClientOptions;
   // "closed" means this client is done, not just that the underlying WS connection is closed.
-  private closed = false;
+  private _closed = false;
   private _logger: Logger;
+
+  /**
+   * Whether this client has been closed.
+   */
+  get closed(): boolean {
+    return this._closed;
+  }
 
   private adminAuth?: string;
   private fakeUserIdentity?: UserIdentityAttributes | undefined;
@@ -360,7 +368,7 @@ export class ConvexReactClient {
    * @internal
    */
   get sync() {
-    if (this.closed) {
+    if (this._closed) {
       throw new Error("ConvexReactClient has already been closed.");
     }
     if (this.cachedSync) {
@@ -437,7 +445,7 @@ export class ConvexReactClient {
   setAdminAuth(token: string, identity?: UserIdentityAttributes) {
     this.adminAuth = token;
     this.fakeUserIdentity = identity;
-    if (this.closed) {
+    if (this._closed) {
       throw new Error("ConvexReactClient has already been closed.");
     }
     if (this.cachedSync) {
@@ -483,7 +491,7 @@ export class ConvexReactClient {
         }
 
         return () => {
-          if (this.closed) {
+          if (this._closed) {
             return;
           }
 
@@ -585,7 +593,7 @@ export class ConvexReactClient {
         }
 
         return () => {
-          if (this.closed) {
+          if (this._closed) {
             return;
           }
 
@@ -723,7 +731,7 @@ export class ConvexReactClient {
    * @returns A `Promise` fulfilled when the connection has been completely closed.
    */
   async close(): Promise<void> {
-    this.closed = true;
+    this._closed = true;
     // Prevent outstanding React batched updates from invoking listeners.
     this.listeners = new Map();
     if (this.cachedPaginatedQueryClient) {
@@ -758,35 +766,38 @@ export class ConvexReactClient {
   }
 }
 
-const ConvexContext = React.createContext<ConvexReactClient>(
-  undefined as unknown as ConvexReactClient, // in the future this will be a mocked client for testing
+const ConvexContext = React.createContext<ConvexReactClientInterface>(
+  undefined as unknown as ConvexReactClientInterface, // supports both real client and fakes for testing
 );
 
 /**
- * Get the {@link ConvexReactClient} within a React component.
+ * Get the {@link ConvexReactClientInterface} within a React component.
  *
  * This relies on the {@link ConvexProvider} being above in the React component tree.
  *
- * @returns The active {@link ConvexReactClient} object, or `undefined`.
+ * @returns The active {@link ConvexReactClientInterface} object, or `undefined`.
  *
  * @public
  */
-export function useConvex(): ConvexReactClient {
+export function useConvex(): ConvexReactClientInterface {
   return useContext(ConvexContext);
 }
 
 /**
- * Provides an active Convex {@link ConvexReactClient} to descendants of this component.
+ * Provides an active Convex {@link ConvexReactClientInterface} to descendants of this component.
  *
  * Wrap your app in this component to use Convex hooks `useQuery`,
  * `useMutation`, and `useConvex`.
+ *
+ * Accepts either a {@link ConvexReactClient} or any implementation of
+ * {@link ConvexReactClientInterface} (such as a mock client for testing).
  *
  * @param props - an object with a `client` property that refers to a {@link ConvexReactClient}.
  *
  * @public
  */
 export const ConvexProvider: React.FC<{
-  client: ConvexReactClient;
+  client: ConvexReactClientInterface;
   children?: React.ReactNode;
 }> = ({ client, children }) => {
   return React.createElement(

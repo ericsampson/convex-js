@@ -25,10 +25,19 @@ export type {
   AuthTokenFetcher,
 } from "./sync/client.js";
 export type { BaseConvexClientInterface } from "./sync/base_client_interface.js";
-export type { PaginationStatus } from "./sync/pagination.js";
+export type { PaginationStatus, LoadMoreOfPaginatedQuery } from "./sync/pagination.js";
 export type { ConvexClientOptions, Unsubscribe } from "./simple_client.js";
 export { ConvexClient } from "./simple_client.js";
-export type { ConvexClientInterface } from "./client_interface.js";
+export type {
+  SharedConvexClientInterface,
+  ConvexClientInterface,
+  ConvexReactClientInterface,
+  LocalQueryResultClient,
+  Watch,
+  WatchQueryOptions,
+  PaginatedWatch,
+  WatchPaginatedQueryOptions,
+} from "./client_interface.js";
 export type {
   OptimisticUpdate,
   OptimisticLocalStore,
@@ -42,3 +51,4 @@ export type { QueryJournal } from "./sync/protocol.js";
 /** @internal */
 export type { UserIdentityAttributes } from "./sync/protocol.js";
 export type { FunctionResult } from "./sync/function_result.js";
+export type { Logger } from "./logging.js";
