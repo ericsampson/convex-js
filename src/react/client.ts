@@ -297,7 +297,7 @@ export interface ConvexReactClientOptions extends BaseConvexClientOptions {}
  *
  * @public
  */
-export class ConvexReactClient {
+export class ConvexReactClient implements ConvexReactClientInterface {
   private address: string;
   private cachedSync?: BaseConvexClient | undefined;
   private cachedPaginatedQueryClient?: PaginatedQueryClient | undefined;

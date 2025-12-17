@@ -210,7 +210,7 @@ export function jsonToConvex(value: JSONValue): Value {
       if (typeof value.$bytes !== "string") {
         throw new Error(`Malformed $bytes field on ${value as any}`);
       }
-      return Base64.toByteArray(value.$bytes).buffer;
+      return Base64.toByteArray(value.$bytes).buffer as ArrayBuffer;
     }
     if (key === "$integer") {
       if (typeof value.$integer !== "string") {

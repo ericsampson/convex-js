@@ -14,7 +14,7 @@
  * @public
  */
 
-import type { FunctionArgs, FunctionReference, FunctionReturnType } from "../server/index.js";
+import type { ArgsAndOptions, FunctionArgs, FunctionReference, FunctionReturnType } from "../server/index.js";
 import type { ConnectionState, AuthTokenFetcher } from "./sync/client.js";
 import type { MutationOptions } from "./sync/client.js";
 import type { Unsubscribe } from "./simple_client.js";
@@ -46,38 +46,36 @@ export interface SharedConvexClientInterface {
    * Execute a mutation function.
    *
    * @param mutation - The mutation function reference
-   * @param args - The mutation arguments
-   * @param options - Optional mutation options (e.g., optimistic updates)
+   * @param argsAndOptions - The mutation arguments and optional options
    * @returns Promise resolving to the mutation result
    */
   mutation<Mutation extends FunctionReference<"mutation">>(
     mutation: Mutation,
-    args: FunctionArgs<Mutation>,
-    options?: MutationOptions,
+    ...argsAndOptions: ArgsAndOptions<Mutation, MutationOptions>
   ): Promise<Awaited<FunctionReturnType<Mutation>>>;
 
   /**
    * Execute an action function.
    *
    * @param action - The action function reference
-   * @param args - The action arguments
+   * @param argsAndOptions - The action arguments
    * @returns Promise resolving to the action result
    */
   action<Action extends FunctionReference<"action">>(
     action: Action,
-    args: FunctionArgs<Action>,
+    ...argsAndOptions: ArgsAndOptions<Action, Record<string, never>>
   ): Promise<Awaited<FunctionReturnType<Action>>>;
 
   /**
    * Fetch a query result once.
    *
    * @param query - The query function reference
-   * @param args - The query arguments
+   * @param argsAndOptions - The query arguments
    * @returns Promise resolving to the query result
    */
   query<Query extends FunctionReference<"query">>(
     query: Query,
-    args: Query["_args"],
+    ...argsAndOptions: ArgsAndOptions<Query, Record<string, never>>
   ): Promise<Awaited<Query["_returnType"]>>;
 
   /**
@@ -271,27 +269,23 @@ export interface ConvexReactClientInterface extends SharedConvexClientInterface 
    * Subscribe to a query and get a Watch object for managing the subscription.
    *
    * @param query - The query function reference
-   * @param args - The query arguments
-   * @param options - Optional watch options (e.g., journal for pagination)
+   * @param argsAndOptions - The query arguments and optional watch options
    * @returns A Watch object with onUpdate() and localQueryResult() methods
    */
   watchQuery<Query extends FunctionReference<"query">>(
     query: Query,
-    args: FunctionArgs<Query>,
-    options?: WatchQueryOptions,
+    ...argsAndOptions: ArgsAndOptions<Query, WatchQueryOptions>
   ): Watch<FunctionReturnType<Query>>;
 
   /**
    * Subscribe to a paginated query and get a PaginatedWatch object.
    *
    * @param query - The paginated query function reference
-   * @param args - The query arguments
-   * @param options - Pagination options (initialNumItems)
+   * @param argsAndOptions - The query arguments and pagination options
    * @returns A PaginatedWatch object with onUpdate() and localQueryResult() methods
    */
   watchPaginatedQuery<Query extends FunctionReference<"query">>(
     query: Query,
-    args: Query["_args"],
-    options: WatchPaginatedQueryOptions,
+    ...argsAndOptions: ArgsAndOptions<Query, WatchPaginatedQueryOptions>
   ): PaginatedWatch<FunctionReturnType<Query>>;
 }

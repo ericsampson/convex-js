@@ -8,6 +8,7 @@ import {
   UserIdentityAttributes,
 } from "./index.js";
 import {
+  ArgsAndOptions,
   FunctionArgs,
   FunctionReference,
   FunctionReturnType,
@@ -513,17 +514,23 @@ export class ConvexClient implements ConvexClientInterface {
    *
    * @param mutation - A {@link server.FunctionReference} for the public mutation
    * to run.
-   * @param args - An arguments object for the mutation.
-   * @param options - A {@link MutationOptions} options object for the mutation.
+   * @param argsAndOptions - The mutation arguments and optional options.
    * @returns A promise of the mutation's result.
    */
   async mutation<Mutation extends FunctionReference<"mutation">>(
     mutation: Mutation,
-    args: FunctionArgs<Mutation>,
-    options?: MutationOptions,
+    ...argsAndOptions: ArgsAndOptions<Mutation, MutationOptions>
   ): Promise<Awaited<FunctionReturnType<Mutation>>> {
     if (this.disabled) throw new Error("ConvexClient is disabled");
-    return await this.client.mutation(getFunctionName(mutation), args, options);
+    const [args, options] = argsAndOptions as [
+      FunctionArgs<Mutation>,
+      MutationOptions | undefined,
+    ];
+    return await this.client.mutation(
+      getFunctionName(mutation),
+      args ?? {},
+      options,
+    );
   }
 
   /**
@@ -531,15 +538,16 @@ export class ConvexClient implements ConvexClientInterface {
    *
    * @param action - A {@link server.FunctionReference} for the public action
    * to run.
-   * @param args - An arguments object for the action.
+   * @param argsAndOptions - The action arguments.
    * @returns A promise of the action's result.
    */
   async action<Action extends FunctionReference<"action">>(
     action: Action,
-    args: FunctionArgs<Action>,
+    ...argsAndOptions: ArgsAndOptions<Action, Record<string, never>>
   ): Promise<Awaited<FunctionReturnType<Action>>> {
     if (this.disabled) throw new Error("ConvexClient is disabled");
-    return await this.client.action(getFunctionName(action), args);
+    const [args] = argsAndOptions as [FunctionArgs<Action>];
+    return await this.client.action(getFunctionName(action), args ?? {});
   }
 
   /**
@@ -547,23 +555,26 @@ export class ConvexClient implements ConvexClientInterface {
    *
    * @param query - A {@link server.FunctionReference} for the public query
    * to run.
-   * @param args - An arguments object for the query.
+   * @param argsAndOptions - The query arguments.
    * @returns A promise of the query's result.
    */
   async query<Query extends FunctionReference<"query">>(
     query: Query,
-    args: Query["_args"],
+    ...argsAndOptions: ArgsAndOptions<Query, Record<string, never>>
   ): Promise<Awaited<Query["_returnType"]>> {
     if (this.disabled) throw new Error("ConvexClient is disabled");
-    const value = this.client.localQueryResult(getFunctionName(query), args) as
-      | Awaited<Query["_returnType"]>
-      | undefined;
+    const [args] = argsAndOptions as [FunctionArgs<Query>];
+    const resolvedArgs = args ?? {};
+    const value = this.client.localQueryResult(
+      getFunctionName(query),
+      resolvedArgs,
+    ) as Awaited<Query["_returnType"]> | undefined;
     if (value !== undefined) return Promise.resolve(value);
 
     return new Promise((resolve, reject) => {
       const { unsubscribe } = this.onUpdate(
         query,
-        args,
+        resolvedArgs,
         (value) => {
           unsubscribe();
           resolve(value);

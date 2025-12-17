@@ -14,6 +14,7 @@ describe("ConvexClientInterface", () => {
     const interfaceMethods: (keyof ConvexClientInterface)[] = [
       "disabled",
       "closed",
+      "client",
       "onUpdate",
       "mutation",
       "action",
@@ -43,6 +44,9 @@ describe("ConvexClientInterface", () => {
     const mockClient: ConvexClientInterface = {
       disabled: false,
       closed: false,
+      client: {
+        localQueryResult: vi.fn().mockReturnValue(undefined),
+      },
       onUpdate: vi.fn().mockReturnValue({
         unsubscribe: vi.fn(),
         getCurrentValue: vi.fn(),
