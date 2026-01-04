@@ -7,16 +7,16 @@
  * - Alternative client implementations
  *
  * Architecture:
- * - BaseConvexClientInterface: Shared methods (mutation, action, query, auth, etc.)
- * - ConvexClientInterface: Extends base with onUpdate() for push-based subscriptions (Svelte)
- * - ConvexReactClientInterface: Extends base with watchQuery() for pull-based subscriptions (React)
+ * - Granular interfaces (MutationClient, QueryClient, ActionClient) for ISP
+ * - SharedConvexClientInterface: Composed from granular interfaces + connection/auth
+ * - ConvexClientInterface: Extends shared with onUpdate() for push-based subscriptions (Svelte)
+ * - ConvexReactClientInterface: Extends shared with watchQuery() for pull-based subscriptions (React)
  *
  * @public
  */
 
 import type { ArgsAndOptions, FunctionArgs, FunctionReference, FunctionReturnType } from "../server/index.js";
 import type { ConnectionState, AuthTokenFetcher } from "./sync/client.js";
-import type { MutationOptions } from "./sync/client.js";
 import type { Unsubscribe } from "./simple_client.js";
 import type { QueryJournal } from "./sync/protocol.js";
 import type { PaginationStatus } from "./index.js";
@@ -24,10 +24,16 @@ import type { LoadMoreOfPaginatedQuery } from "./sync/pagination.js";
 import type { Value } from "../values/index.js";
 import type { Logger } from "./logging.js";
 
+// Re-export granular interfaces for convenience
+export type { MutationClient, QueryClient, ActionClient } from "../client/interfaces.js";
+import type { MutationClient, QueryClient, ActionClient } from "../client/interfaces.js";
+
 /**
  * Shared interface for high-level Convex client implementations.
  *
- * Contains methods shared by ConvexClient and ConvexReactClient.
+ * Composed from granular interfaces (MutationClient, QueryClient, ActionClient)
+ * plus connection and authentication capabilities.
+ *
  * Use the extended interfaces (ConvexClientInterface, ConvexReactClientInterface)
  * for the full contract including subscription methods.
  *
@@ -36,47 +42,14 @@ import type { Logger } from "./logging.js";
  *
  * @public
  */
-export interface SharedConvexClientInterface {
+export interface SharedConvexClientInterface
+  extends MutationClient,
+    QueryClient,
+    ActionClient {
   /**
    * Whether the client has been closed.
    */
   readonly closed: boolean;
-
-  /**
-   * Execute a mutation function.
-   *
-   * @param mutation - The mutation function reference
-   * @param argsAndOptions - The mutation arguments and optional options
-   * @returns Promise resolving to the mutation result
-   */
-  mutation<Mutation extends FunctionReference<"mutation">>(
-    mutation: Mutation,
-    ...argsAndOptions: ArgsAndOptions<Mutation, MutationOptions>
-  ): Promise<Awaited<FunctionReturnType<Mutation>>>;
-
-  /**
-   * Execute an action function.
-   *
-   * @param action - The action function reference
-   * @param argsAndOptions - The action arguments
-   * @returns Promise resolving to the action result
-   */
-  action<Action extends FunctionReference<"action">>(
-    action: Action,
-    ...argsAndOptions: ArgsAndOptions<Action, Record<string, never>>
-  ): Promise<Awaited<FunctionReturnType<Action>>>;
-
-  /**
-   * Fetch a query result once.
-   *
-   * @param query - The query function reference
-   * @param argsAndOptions - The query arguments
-   * @returns Promise resolving to the query result
-   */
-  query<Query extends FunctionReference<"query">>(
-    query: Query,
-    ...argsAndOptions: ArgsAndOptions<Query, Record<string, never>>
-  ): Promise<Awaited<Query["_returnType"]>>;
 
   /**
    * Get the current connection state.

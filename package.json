@@ -1,7 +1,7 @@
 {
   "name": "convex",
   "description": "Client for the Convex Cloud",
-  "version": "1.32.0-alpha",
+  "version": "1.32.0-beta",
   "author": "Convex, Inc. <no-reply@convex.dev>",
   "homepage": "https://convex.dev",
   "repository": {
@@ -144,6 +144,22 @@
         "import": "./dist/esm/values/index.js"
       }
     },
+    "./client": {
+      "require": {
+        "convex-internal-types": {
+          "types": "./dist/internal-cjs-types/client/index.d.ts"
+        },
+        "types": "./dist/cjs-types/client/index.d.ts",
+        "require": "./dist/cjs/client/index.js"
+      },
+      "import": {
+        "convex-internal-types": {
+          "types": "./dist/internal-esm-types/client/index.d.ts"
+        },
+        "types": "./dist/esm-types/client/index.d.ts",
+        "import": "./dist/esm/client/index.js"
+      }
+    },
     "./package.json": "./package.json"
   },
   "@comment typesVersions": [
@@ -175,6 +191,9 @@
       ],
       "values": [
         "./dist/internal-cjs-types/values/index.d.ts"
+      ],
+      "client": [
+        "./dist/internal-cjs-types/client/index.d.ts"
       ]
     }
   },
@@ -205,6 +224,7 @@
   "files": [
     "bin",
     "browser",
+    "client",
     "config",
     "dist",
     "nextjs",
