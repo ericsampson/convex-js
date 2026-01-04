@@ -29,6 +29,11 @@ export type { PaginationStatus, LoadMoreOfPaginatedQuery } from "./sync/paginati
 export type { ConvexClientOptions, Unsubscribe } from "./simple_client.js";
 export { ConvexClient } from "./simple_client.js";
 export type {
+  // Granular interfaces (ISP)
+  MutationClient,
+  QueryClient,
+  ActionClient,
+  // Composed interfaces
   SharedConvexClientInterface,
   ConvexClientInterface,
   ConvexReactClientInterface,
